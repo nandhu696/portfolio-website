@@ -1,15 +1,17 @@
 from flask import Flask, render_template, request
 import mysql.connector
+import os
 
 app = Flask(__name__)
 
-# MySQL Connection
-db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="root123",
-    database="portfolio_db"
-)
+# MySQL Connection (Render + Production Safe)
+def get_db_connection():
+    return mysql.connector.connect(
+        host=os.environ.get("DB_HOST"),
+        user=os.environ.get("DB_USER"),
+        password=os.environ.get("DB_PASSWORD"),
+        database=os.environ.get("DB_NAME")
+    )
 
 @app.route('/')
 def home():
@@ -18,10 +20,11 @@ def home():
 @app.route('/contact', methods=['POST'])
 def contact():
 
-    name = request.form['name']
-    email = request.form['email']
-    message = request.form['message']
+    name = request.form.get('name')
+    email = request.form.get('email')
+    message = request.form.get('message')
 
+    db = get_db_connection()
     cursor = db.cursor()
 
     sql = """
@@ -35,8 +38,9 @@ def contact():
     db.commit()
 
     cursor.close()
+    db.close()
 
-    return "Message Submitted Successfully! Data stored in MySQL."
+    return "Message Submitted Successfully!"
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=10000)
